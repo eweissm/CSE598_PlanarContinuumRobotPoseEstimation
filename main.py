@@ -38,12 +38,25 @@ Marked_image = cv2.aruco.drawDetectedMarkers(image, corners, ids)
 # plt.imshow(Marked_image, origin="upper")
 
 if ids is not None:
-    # for i in range(len(ids)):
-    #     c = corners[i][0]
-    #     plt.plot([c[:, 0].mean()], [c[:, 1].mean()], "+", label = "id={0}".format(ids[i]))
-# plt.legend()
-# plt.show()
-    cv2.imshow('Detected Markers', Marked_image)
+#     for i in range(len(ids)):
+#         c = corners[i][0]
+#         plt.plot([c[:, 0].mean()], [c[:, 1].mean()], "+", label = "id={0}".format(ids[i]))
+# # plt.legend()
+# # plt.show()
+#     cv2.imshow('Detected Markers', Marked_image)
+#     cv2.waitKey(0)
+#     cv2.destroyAllWindows()
+    mask = cv2.subtract(Marked_image, image)  # Find the drawn areas
+    mask_gray = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)  # Convert to grayscale
+    _, mask_binary = cv2.threshold(mask_gray, 1, 255, cv2.THRESH_BINARY)  # Convert to binary mask
+
+    only_markers = cv2.bitwise_and(Marked_image, Marked_image, mask=mask_binary)
+
+    # Add the markers to the original image
+    overlay = cv2.add(image, only_markers)
+
+    # Show result
+    cv2.imshow('Overlayed Image', overlay)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
