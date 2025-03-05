@@ -17,15 +17,15 @@ aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
 
 #arUco Parameters
 parameters = cv2.aruco.DetectorParameters()
-parameters.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
-parameters.adaptiveThreshWinSizeMin = 3
-parameters.adaptiveThreshWinSizeMax = 23
-parameters.adaptiveThreshWinSizeStep = 10
-parameters.adaptiveThreshConstant = 7
-parameters.polygonalApproxAccuracyRate = 0.02
-parameters.minMarkerPerimeterRate = 0.02
-parameters.minCornerDistanceRate = 0.05
-parameters.minMarkerDistanceRate = 0.05
+# parameters.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
+# parameters.adaptiveThreshWinSizeMin = 3
+# parameters.adaptiveThreshWinSizeMax = 23
+# parameters.adaptiveThreshWinSizeStep = 10
+# parameters.adaptiveThreshConstant = 7
+# parameters.polygonalApproxAccuracyRate = 0.02
+# parameters.minMarkerPerimeterRate = 0.02
+# parameters.minCornerDistanceRate = 0.05
+# parameters.minMarkerDistanceRate = 0.05
 
 # Create the ArUco detector
 detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
