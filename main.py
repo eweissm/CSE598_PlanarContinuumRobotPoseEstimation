@@ -14,6 +14,9 @@ scale_y = 0.5  # Reduce height to 50%
 
 numMarkers=8
 
+SensorPairs = np.array([[2,5],[1,9],[5,6],[6,4],[9,3],[3,10]]) #Fiducial IDs for pairs of sensors arranged as
+
+
 #load aruco dictionary
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
 
@@ -54,17 +57,22 @@ while True:
     #draw on detected markers
     frame = cv2.aruco.drawDetectedMarkers(frame, corners, ids)
 
+    #create list to store fiducial locations. made 11 long so i can just use ID as the index
+    center_x = [0]*11
+    center_y = [0]*11
+
     if len(ids) == numMarkers:
 
         for i in range(numMarkers):
             ThisCorner = corners[i]
-            center_x = int(np.mean(ThisCorner[0][:, 0]))
-            center_y = int(np.mean(ThisCorner[0][:, 1]))
+
+            center_x[ids[i][0]] = int(np.mean(ThisCorner[0][:, 0]))
+            center_y[ids[i][0]] = int(np.mean(ThisCorner[0][:, 1]))
 
             # Draw a circle at the center
-            cv2.circle(frame, (center_x, center_y), 5, (0, 0, 255), -1)
-            cv2.putText(frame, str(ids[i]), (center_x, center_y),cv2.FONT_HERSHEY_SIMPLEX,
-                                1, (255, 0, 0), 2, cv2.LINE_AA)
+            cv2.circle(frame, (center_x[ids[i][0]], center_y[ids[i][0]]), 5, (0, 0, 255), -1)
+            # cv2.putText(frame, str(ids[i]), (center_x, center_y),cv2.FONT_HERSHEY_SIMPLEX,
+            #                     1, (255, 0, 0), 2, cv2.LINE_AA)
     # Process the frame (e.g., display it)
     cv2.imshow('Frame', frame)
 
