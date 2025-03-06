@@ -1,7 +1,7 @@
 
 import cv2
 import numpy as np
-video_path = 'Videos/FiducialTest_2.MOV'  # Replace with the actual path to your video file
+video_path = 'Videos/MVI_0698.MOV'  # Replace with the actual path to your video file
 cap = cv2.VideoCapture(video_path)
 
 # Check if the video file was opened successfully
@@ -11,6 +11,8 @@ if not cap.isOpened():
 
 scale_x = 0.5  # Reduce width to 50%
 scale_y = 0.5  # Reduce height to 50%
+
+numMarkers=8
 
 #load aruco dictionary
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
@@ -52,6 +54,17 @@ while True:
     #draw on detected markers
     frame = cv2.aruco.drawDetectedMarkers(frame, corners, ids)
 
+    if len(ids) == numMarkers:
+
+        for i in range(numMarkers):
+            ThisCorner = corners[i]
+            center_x = int(np.mean(ThisCorner[0][:, 0]))
+            center_y = int(np.mean(ThisCorner[0][:, 1]))
+
+            # Draw a circle at the center
+            cv2.circle(frame, (center_x, center_y), 5, (0, 0, 255), -1)
+            cv2.putText(frame, str(ids[i]), (center_x, center_y),cv2.FONT_HERSHEY_SIMPLEX,
+                                1, (255, 0, 0), 2, cv2.LINE_AA)
     # Process the frame (e.g., display it)
     cv2.imshow('Frame', frame)
 
