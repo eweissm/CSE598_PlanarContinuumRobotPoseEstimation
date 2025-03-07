@@ -4,7 +4,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 
-video_path = 'Videos/MVI_0698.MOV'  # Replace with the actual path to your video file
+video_path = 'Videos/MVI_0721.MOV'  # Replace with the actual path to your video file
 cap = cv2.VideoCapture(video_path)
 
 scale_x = 0.8  # Reduce width to 50%
@@ -12,7 +12,6 @@ scale_y = 0.8  # Reduce height to 50%
 new_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) * scale_x)
 new_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) * scale_y)
 new_size = (new_width, new_height)
-
 
 numMarkers=8 #num fiducials
 
@@ -41,6 +40,20 @@ FrameNum=0 #current video frame
 
 SensorValues=np.zeros((len(SensorPairs),frame_count)) #distances of the 6 sensors
 
+
+#specify color HSV bounds for the spine
+# lower boundary RED color range values; Hue (0 - 10)
+lower1 = np.array([0, 30, 120])
+upper1 = np.array([20, 255, 255])
+
+# upper boundary RED color range values; Hue (160 - 180)
+lower2 = np.array([160, 30, 120])
+upper2 = np.array([179, 255, 255])
+
+#green color bounds
+GreenLower = np.array([50, 100, 100])
+GreenUpper = np.array([70, 255, 255])
+
 while True:
     ret, frame = cap.read()
 
@@ -48,6 +61,9 @@ while True:
     if not ret:
         break
 
+    ###################################################################################################################
+    #Process Fiducials
+    ###################################################################################################################
     #make frame grayscale and apply gaussian blur to improve reading
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (5, 5), 10)
@@ -84,6 +100,45 @@ while True:
         thisFramesSensorValues[0,i] =math.sqrt((x1-x2)**2+(y1-y2)**2)
     SensorValues[:, FrameNum] = thisFramesSensorValues
 
+    ###################################################################################################################
+    # Process Spine
+    ###################################################################################################################
+    #get hsv colors of the frame
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    #find color masks
+    #red
+    # lower_mask = cv2.inRange(hsv, lower1, upper1)
+    # upper_mask = cv2.inRange(hsv, lower2, upper2)
+    # mask = lower_mask + upper_mask
+    mask = cv2.inRange(hsv, GreenLower, GreenUpper)
+    # define kernel size
+    kernel = np.ones((7, 7), np.uint8)
+
+    # Remove unnecessary noise from mask
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+    color1 = cv2.bitwise_and(frame, frame, mask=mask)
+
+    # finds contours from colors
+    contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # array of center points of contours
+    C = np.empty([len(contours), 2], 'i')
+
+    # Draw contour on original image
+    output = cv2.drawContours(frame, contours, -1, (0, 255, 0  ), 2)
+
+    if len(contours) > 0:
+        for i in range(len(contours)):
+            M = cv2.moments(contours[i])
+            C[i, 0] = int(M['m10'] / M['m00'])  # cx
+            C[i, 1] = int(M['m01'] / M['m00'])  # cy
+            output[C[i, 1] - 2:C[i, 1] + 2, C[i, 0] - 2:C[i, 0] + 2] = [255, 255, 255]
+    ###################################################################################################################
+    # Output video
+    ###################################################################################################################
     # resize frame to fit on my screen
     frame = cv2.resize(frame, new_size, interpolation=cv2.INTER_AREA)
 
