@@ -1,14 +1,15 @@
-
 import cv2
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+from scipy.interpolate import splprep, splev
 
-video_path = 'Videos/MVI_0721.MOV'  # Replace with the actual path to your video file
+video_path = 'Videos/MVI_0723.MOV'  # Replace with the actual path to your video file
 cap = cv2.VideoCapture(video_path)
 
-scale_x = 0.8  # Reduce width to 50%
-scale_y = 0.8  # Reduce height to 50%
+scale_x = .5  # Reduce width to 50%
+scale_y = .5  # Reduce height to 50%
+# print(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 new_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) * scale_x)
 new_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) * scale_y)
 new_size = (new_width, new_height)
@@ -51,15 +52,39 @@ lower2 = np.array([160, 30, 120])
 upper2 = np.array([179, 255, 255])
 
 #green color bounds
-GreenLower = np.array([50, 100, 100])
-GreenUpper = np.array([70, 255, 255])
+GreenLower = np.array([50, 120, 120])
+GreenUpper = np.array([96, 180, 255])
+
+
+def fit_polynomial_curve(ThisMask, degree=3):
+    x=[]
+    y=[]
+   for i in range(ThisMask.shape[0]):
+       for j in range mask.shape[1]:
+           if ThisMask[i,j]==1:
+               x.append(j)
+               y.append(i)
+
+    # Fit a polynomial (degree can be adjusted)
+    poly_coeffs = np.polyfit(x, y, degree)
+    poly_func = np.poly1d(poly_coeffs)  # Create a polynomial function
+
+    # Generate smooth curve points
+    x_smooth = np.linspace(np.min(x), np.max(x), 100)
+    y_smooth = poly_func(x_smooth)
+
+    return np.column_stack((x_smooth, y_smooth))  # Return smoothed centerline points
+
 
 while True:
     ret, frame = cap.read()
-
     # If frame is not read correctly, break the loop
     if not ret:
         break
+
+    frame = frame[0:1960, 600:1800 ]
+
+
 
     ###################################################################################################################
     #Process Fiducials
@@ -70,9 +95,6 @@ while True:
 
     # Detect the markers
     corners, ids, rejected = detector.detectMarkers(gray)
-
-    #draw on detected markers
-    frame = cv2.aruco.drawDetectedMarkers(frame, corners, ids)
 
     #create list to store fiducial locations. made 11 long so i can just use ID as the index
     center_x = [0]*11
@@ -105,7 +127,7 @@ while True:
     ###################################################################################################################
     #get hsv colors of the frame
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
+    hsv = cv2.GaussianBlur(hsv, (5, 5), 10)
     #find color masks
     #red
     # lower_mask = cv2.inRange(hsv, lower1, upper1)
@@ -124,6 +146,8 @@ while True:
     # finds contours from colors
     contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+    centerline = fit_polynomial_curve(mask.copy(), degree=3)
+
     # array of center points of contours
     C = np.empty([len(contours), 2], 'i')
 
@@ -131,14 +155,27 @@ while True:
     output = cv2.drawContours(frame, contours, -1, (0, 255, 0  ), 2)
 
     if len(contours) > 0:
-        for i in range(len(contours)):
+        # largest_contour = max(contours, key=cv2.contourArea)
+
+        # Fit a polynomial curve to the contour
+        # centerline = fit_polynomial_curve(contours, degree=3)
+
+        for i in range(len(contours) ):
+            # pt1 = (int(centerline[i][0]), int(centerline[i][1]))
+            # pt2 = (int(centerline[i + 1][0]), int(centerline[i + 1][1]))
+            # cv2.line(frame, pt1, pt2, (255, 0, 0), 2)  # Blue centerline
+
             M = cv2.moments(contours[i])
             C[i, 0] = int(M['m10'] / M['m00'])  # cx
             C[i, 1] = int(M['m01'] / M['m00'])  # cy
             output[C[i, 1] - 2:C[i, 1] + 2, C[i, 0] - 2:C[i, 0] + 2] = [255, 255, 255]
+
     ###################################################################################################################
     # Output video
     ###################################################################################################################
+    # draw on detected markers
+    frame = cv2.aruco.drawDetectedMarkers(frame, corners, ids)
+
     # resize frame to fit on my screen
     frame = cv2.resize(frame, new_size, interpolation=cv2.INTER_AREA)
 
