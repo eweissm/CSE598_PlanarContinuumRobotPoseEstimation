@@ -59,11 +59,12 @@ GreenUpper = np.array([96, 180, 255])
 def fit_polynomial_curve(ThisMask, degree=3):
     x=[]
     y=[]
-   for i in range(ThisMask.shape[0]):
-       for j in range mask.shape[1]:
-           if ThisMask[i,j]==1:
-               x.append(j)
-               y.append(i)
+    for i in range(ThisMask.shape[0]):
+        for j in range(mask.shape[1]):
+
+            if ThisMask[i,j] != 0:
+                x.append(j)
+                y.append(i)
 
     # Fit a polynomial (degree can be adjusted)
     poly_coeffs = np.polyfit(x, y, degree)
@@ -125,6 +126,7 @@ while True:
     ###################################################################################################################
     # Process Spine
     ###################################################################################################################
+    frame = cv2.transpose(frame)
     #get hsv colors of the frame
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     hsv = cv2.GaussianBlur(hsv, (5, 5), 10)
@@ -146,7 +148,8 @@ while True:
     # finds contours from colors
     contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    centerline = fit_polynomial_curve(mask.copy(), degree=3)
+    if np.any(mask):
+        centerline = fit_polynomial_curve(mask.copy(), degree=3)
 
     # array of center points of contours
     C = np.empty([len(contours), 2], 'i')
@@ -170,6 +173,12 @@ while True:
             C[i, 1] = int(M['m01'] / M['m00'])  # cy
             output[C[i, 1] - 2:C[i, 1] + 2, C[i, 0] - 2:C[i, 0] + 2] = [255, 255, 255]
 
+        for i in range(len(centerline)-1):
+            pt1 = (int(centerline[i][0]), int(centerline[i][1]))
+            pt2 = (int(centerline[i + 1][0]), int(centerline[i + 1][1]))
+            cv2.line(frame, pt1, pt2, (255, 0, 0), 2)  # Blue centerline
+
+    frame = cv2.transpose(frame)
     ###################################################################################################################
     # Output video
     ###################################################################################################################
