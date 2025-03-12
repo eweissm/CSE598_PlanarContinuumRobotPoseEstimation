@@ -1,8 +1,5 @@
 import numpy as np
 import pandas as pd
-import torch
-import torch.nn as nn
-import torch.optim as optim
 from sklearn.model_selection import train_test_split
 from reservoirpy.nodes import Reservoir, Ridge, Input, Output
 import matplotlib.pyplot as plt
@@ -22,7 +19,7 @@ X = np.hstack((sensor_data, actuator_inputs))
 y = coefficients  # Ground truth coefficients
 
 # Split dataset into training (90%) and validation (10%)
-X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.1, random_state=42)
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.1)
 
 # Define Echo State Network
 input_dim = X_train.shape[1]
@@ -63,7 +60,7 @@ joblib.dump(model, "TrainedModels/trained_esn_model.pkl")
 
 # Select 5 random samples from the validation set
 NumGraphs = 1
-np.random.seed(42)
+# np.random.seed(42)
 random_indices = np.random.choice(len(X_val), NumGraphs, replace=False)
 X_sample = X_val[random_indices]
 y_sample_true = y_val[random_indices]
