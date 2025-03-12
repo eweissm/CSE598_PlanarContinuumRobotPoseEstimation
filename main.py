@@ -68,7 +68,7 @@ def fit_polynomial_curve(ThisMask, degree):
     # Fit a polynomial (degree can be adjusted)
     poly_coeffs = np.polyfit(x, y, degree)
     poly_func = np.poly1d(poly_coeffs)  # Create a polynomial function
-
+    print(np.max(x))
     # Generate smooth curve points
     x_smooth = np.linspace(np.min(x), np.max(x), 100)
     y_smooth = poly_func(x_smooth)

@@ -4,7 +4,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from sklearn.model_selection import train_test_split
-from reservoirpy.nodes import Reservoir, Ridge, Input
+from reservoirpy.nodes import Reservoir, Ridge, Input, Output
+import matplotlib.pyplot as plt
+
 
 # Load dataset
 file_path = "ExtractedData/ExtractedData_SmoothSine.csv"  # Replace with actual file path
@@ -29,16 +31,16 @@ n_reservoir = 500  # Number of reservoir neurons
 
 # reservoir = ESN(n_reservoir=n_reservoir, spectral_radius=0.9, input_scaling=0.5)
 
-reservoir1 = Reservoir(500, name="res1-1")
+reservoir1 = Reservoir(200, name="res1-1")
 reservoir2 = Reservoir(500, name="res2-1")
 
 readout1 = Ridge(ridge=1e-5, name="readout1-1")
 readout2 = Ridge(ridge=1e-5, name="readout2-1")
 
-path1 = input() >> reservoir2
-path2 = reservoir1 >> readout1 >> reservoir2 >> readout2
-model = path1 & path2
-
+# path1 = Input() >> [reservoir1, reservoir2]
+# path2 =  reservoir1 >> readout1 >> reservoir2 >> readout2 >> Output()
+model = reservoir1 >> readout1
+# model = reservoir1 >> readout1
 # Train the ESN on training data
 model.fit(X_train, y_train)
 
@@ -52,3 +54,33 @@ print(f"Validation MSE: {mse:.6f}")
 # Save the trained model
 import joblib
 joblib.dump(model, "TrainedModels/trained_esn_model.pkl")
+
+
+
+#######################################################
+# graph 5 random curved
+#######################################################
+
+# Select 5 random samples from the validation set
+NumGraphs = 1
+np.random.seed(42)
+random_indices = np.random.choice(len(X_val), NumGraphs, replace=False)
+X_sample = X_val[random_indices]
+y_sample_true = y_val[random_indices]
+
+# Get model predictions
+y_sample_pred = model.run(X_sample)
+
+for i in range(NumGraphs):
+
+    poly_func_true = np.poly1d(y_sample_true[i])  # Create a polynomial function
+    poly_func_Pred = np.poly1d(y_sample_pred[i])
+
+    # Generate smooth curve points
+    x_smooth = np.linspace(100, 775, 100)
+    y_smooth_true = poly_func_true(x_smooth)
+    y_smooth_Pred = poly_func_Pred(x_smooth)
+
+    plt.plot(x_smooth,y_smooth_true)
+    plt.plot(x_smooth, y_smooth_Pred,'--')
+plt.show()
