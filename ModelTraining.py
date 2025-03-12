@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from sklearn.model_selection import train_test_split
-from reservoirpy.nodes import ESN
+from reservoirpy.nodes import Reservoir, Ridge, Input
 
 # Load dataset
 file_path = "ExtractedData/ExtractedData_SmoothSine.csv"  # Replace with actual file path
@@ -27,13 +27,23 @@ input_dim = X_train.shape[1]
 output_dim = y_train.shape[1]
 n_reservoir = 500  # Number of reservoir neurons
 
-reservoir = ESN(n_reservoir=n_reservoir, spectral_radius=0.9, input_scaling=0.5)
+# reservoir = ESN(n_reservoir=n_reservoir, spectral_radius=0.9, input_scaling=0.5)
+
+reservoir1 = Reservoir(500, name="res1-1")
+reservoir2 = Reservoir(500, name="res2-1")
+
+readout1 = Ridge(ridge=1e-5, name="readout1-1")
+readout2 = Ridge(ridge=1e-5, name="readout2-1")
+
+path1 = input() >> reservoir2
+path2 = reservoir1 >> readout1 >> reservoir2 >> readout2
+model = path1 & path2
 
 # Train the ESN on training data
-reservoir.fit(X_train, y_train)
+model.fit(X_train, y_train)
 
 # Validate the model
-y_pred = reservoir.run(X_val)
+y_pred = model.run(X_val)
 
 # Compute validation error
 mse = np.mean((y_pred - y_val) ** 2)
@@ -41,4 +51,4 @@ print(f"Validation MSE: {mse:.6f}")
 
 # Save the trained model
 import joblib
-joblib.dump(reservoir, "trained_esn_model.pkl")
+joblib.dump(model, "TrainedModels/trained_esn_model.pkl")
