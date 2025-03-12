@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 from scipy.interpolate import splprep, splev
 
-video_path = 'Videos/MVI_0723.MOV'  # Replace with the actual path to your video file
+video_path = 'Videos/MVI_0767.MOV'  # Replace with the actual path to your video file
 cap = cv2.VideoCapture(video_path)
 
 scale_x = .5  # Reduce width to 50%
@@ -52,11 +52,11 @@ lower2 = np.array([160, 30, 120])
 upper2 = np.array([179, 255, 255])
 
 #green color bounds
-GreenLower = np.array([50, 120, 120])
-GreenUpper = np.array([96, 180, 255])
+GreenLower = np.array([50, 125, 130])
+GreenUpper = np.array([95, 180, 255])
 
 
-def fit_polynomial_curve(ThisMask, degree=3):
+def fit_polynomial_curve(ThisMask, degree):
     x=[]
     y=[]
     for i in range(ThisMask.shape[0]):
@@ -74,7 +74,7 @@ def fit_polynomial_curve(ThisMask, degree=3):
     x_smooth = np.linspace(np.min(x), np.max(x), 100)
     y_smooth = poly_func(x_smooth)
 
-    return np.column_stack((x_smooth, y_smooth))  # Return smoothed centerline points
+    return np.column_stack((x_smooth, y_smooth)), poly_coeffs   # Return smoothed centerline points
 
 
 while True:
@@ -83,7 +83,7 @@ while True:
     if not ret:
         break
 
-    frame = frame[0:1960, 600:1800 ]
+    frame = frame[0:1960, 500:1400 ]
 
 
 
@@ -149,7 +149,7 @@ while True:
     contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if np.any(mask):
-        centerline = fit_polynomial_curve(mask.copy(), degree=3)
+        centerline, Coeffs = fit_polynomial_curve(mask.copy(), 5)
 
     # array of center points of contours
     C = np.empty([len(contours), 2], 'i')
