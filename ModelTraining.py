@@ -21,23 +21,15 @@ y = coefficients  # Ground truth coefficients
 # Split dataset into training (90%) and validation (10%)
 X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.1)
 
-# Define Echo State Network
-input_dim = X_train.shape[1]
-output_dim = y_train.shape[1]
-n_reservoir = 500  # Number of reservoir neurons
-
-# reservoir = ESN(n_reservoir=n_reservoir, spectral_radius=0.9, input_scaling=0.5)
-
-reservoir1 = Reservoir(200, name="res1-1")
-reservoir2 = Reservoir(500, name="res2-1")
-
+###################################################################################
+# Deep ESN
+###################################################################################
+#Define Echo State Network
+n_reservoir = 200  # Number of reservoir neurons
+reservoir1 = Reservoir(n_reservoir, name="res1-1")
 readout1 = Ridge(ridge=1e-5, name="readout1-1")
-readout2 = Ridge(ridge=1e-5, name="readout2-1")
-
-# path1 = Input() >> [reservoir1, reservoir2]
-# path2 =  reservoir1 >> readout1 >> reservoir2 >> readout2 >> Output()
 model = reservoir1 >> readout1
-# model = reservoir1 >> readout1
+
 # Train the ESN on training data
 model.fit(X_train, y_train)
 
