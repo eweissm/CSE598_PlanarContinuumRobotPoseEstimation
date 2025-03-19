@@ -3,7 +3,8 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from reservoirpy.nodes import Reservoir, Ridge, Input, Output
 import matplotlib.pyplot as plt
-
+# import matplotlib
+import scienceplots
 
 # Load dataset
 file_path = "ExtractedData/ExtractedData_SmoothSine.csv"  # Replace with actual file path
@@ -66,10 +67,35 @@ for i in range(NumGraphs):
     poly_func_Pred = np.poly1d(y_sample_pred[i])
 
     # Generate smooth curve points
+
     x_smooth = np.linspace(100, 775, 100)
     y_smooth_true = poly_func_true(x_smooth)
     y_smooth_Pred = poly_func_Pred(x_smooth)
 
-    plt.plot(x_smooth,y_smooth_true)
-    plt.plot(x_smooth, y_smooth_Pred,'--')
+    # matplotlib.rc('font', size=24)  # Sets the global font size to 20
+    # plt.rcParams["text.usetex"] = False
+    # plt.rcParams["font.family"] = "sans-serif"
+    # plt.rcParams["font.sans-serif"] = ["Arial"]  # Change to a commonly available font
+    #
+    # plt.style.use(['science', 'ieee'])
+    plt.rcParams.update({
+        "font.size": 8,  # Adjust font size to IEEE standard
+        "axes.labelsize": 8,  # Label size
+        "axes.titlesize": 9,  # Title size
+        "xtick.labelsize": 7,  # X-axis tick size
+        "ytick.labelsize": 7,  # Y-axis tick size
+        "legend.fontsize": 7,  # Legend font size
+        "lines.linewidth": 1,  # Line width
+        "figure.figsize": (3.5, 2.5),  # IEEE single-column figure size
+        "text.usetex": False,  # Ensure LaTeX is disabled
+    })
+
+    plt.figure(figsize=(2, 4))
+    plt.plot(np.flipud(y_smooth_true), x_smooth,'k')
+    plt.plot( np.flipud(y_smooth_Pred),x_smooth,'k--')
+    plt.axis('equal')
+    plt.xlabel('X (pixels)')
+    plt.ylabel('Y (pixels)')
+    plt.tight_layout()
+    plt.savefig("Figs/fig6.png", dpi=300, bbox_inches='tight')
 plt.show()

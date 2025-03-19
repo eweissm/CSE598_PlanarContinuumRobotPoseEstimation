@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from reservoirpy.nodes import Reservoir, Ridge, Input, Output
+from reservoirpy.nodes import Reservoir, Ridge
 import matplotlib.pyplot as plt
-
 
 # Load dataset
 file_path = "ExtractedData/ExtractedData_SmoothSine.csv"  # Replace with actual file path
@@ -18,34 +17,57 @@ actuator_inputs = data.iloc[:, 13:15].values  # Columns 14-15
 X = np.hstack((sensor_data, actuator_inputs))
 y = coefficients  # Ground truth coefficients
 
-DataSplit = np.linspace(.1, .9,10)
-mse_vals = []
+DataSplit = np.linspace(0.1, 0.9, 10)
+n_runs = 20  # Number of repetitions for each split
 
-#Define Echo State Network
-n_reservoir = 200  # Number of reservoir neurons
+mse_means = []
+mse_stds = []
+
+# Define Echo State Network
+n_reservoir = 100  # Number of reservoir neurons
 reservoir1 = Reservoir(n_reservoir, name="res1-1")
 readout1 = Ridge(ridge=1e-5, name="readout1-1")
 model = reservoir1 >> readout1
 
 for i in DataSplit:
+    mse_vals = []
+    for _ in range(n_runs):
+        # Split dataset into training and validation
+        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=i)
 
-    # Split dataset into training (90%) and validation (10%)
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=i)
+        # Train the ESN on training data
+        model.fit(X_train, y_train)
 
+        # Validate the model
+        y_pred = model.run(X_val)
 
-    # Train the ESN on training data
-    model.fit(X_train, y_train)
+        # Compute validation error
+        mse = np.mean((y_pred - y_val) ** 2)
+        mse_vals.append(mse)
 
-    # Validate the model
-    y_pred = model.run(X_val)
+    # Compute mean and standard deviation of MSE
+    mse_means.append(np.mean(mse_vals))
+    mse_stds.append(np.std(mse_vals))
 
-    # Compute validation error
-    mse = np.mean((y_pred - y_val) ** 2)
-    print(f"Validation MSE: {mse:.6f}")
-    mse_vals.append(mse)
+# Plot results
+plt.rcParams.update({
+    "font.size": 8,
+    "axes.labelsize": 8,
+    "axes.titlesize": 9,
+    "xtick.labelsize": 7,
+    "ytick.labelsize": 7,
+    "legend.fontsize": 7,
+    "lines.linewidth": 1,
+    "figure.figsize": (3.5, 2.5),
+    "text.usetex": False,
+})
 
-plt.plot(DataSplit, mse_vals)
+fig, ax = plt.subplots()
+ax.errorbar(DataSplit, mse_means, yerr=mse_stds, fmt='-o', capsize=5, label="Mean MSE")
+ax.set_xlabel('Data Split')
+ax.set_ylabel('MSE')
+ax.legend()
+fig.tight_layout()
+
+plt.savefig("Figs/DataSplit.png", dpi=300, bbox_inches='tight')
 plt.show()
-
-
-

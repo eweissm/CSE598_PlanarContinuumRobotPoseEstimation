@@ -217,8 +217,32 @@ cv2.destroyAllWindows()
 #remove frame where we do not have all fiducials in view
 SensorValues= np.delete(SensorValues,badFrames,1)
 
+plt.rcParams.update({
+    "font.size": 8,  # Adjust font size to IEEE standard
+    "axes.labelsize": 8,  # Label size
+    "axes.titlesize": 9,  # Title size
+    "xtick.labelsize": 7,  # X-axis tick size
+    "ytick.labelsize": 7,  # Y-axis tick size
+    "legend.fontsize": 7,  # Legend font size
+    "lines.linewidth": 1,  # Line width
+    "figure.figsize": (3.5, 2.5),  # IEEE single-column figure size
+    "text.usetex": False,  # Ensure LaTeX is disabled
+})
+
+fig, ax = plt.subplots()
 for i in range(len(SensorPairs)):
-    plt.plot(SensorValues[i,:])
+
+    ax.plot(SensorValues[i,:], label="Sensor"+str(i))
+
+
+
+# plt.figure(figsize=(6, 4))
+ax.set_xlabel('Frame No.')
+ax.set_ylabel('Sensor Reading (Pixels)')
+ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1))
+fig.tight_layout()
+
+plt.savefig("Figs/Sensors.png", dpi=300, bbox_inches='tight')
 plt.show()
 
 print(NumBadFrames)
