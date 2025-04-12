@@ -1,3 +1,43 @@
+"""
+Author: Eric Weissman
+Date: 4/12/25
+
+Description:
+------------
+This script processes a video of a 2D soft robotic spine with embedded fiducial markers and colored components to:
+1. Detect ArUco fiducial markers in each frame using OpenCV's ArUco module.
+2. Measure distances between predefined fiducial pairs to estimate "sensor" readings (e.g., deformation).
+3. Track the spine's shape using HSV-based color segmentation (e.g., green/red) and fit a polynomial curve to the segmented region.
+4. Record fiducial distances and fitted polynomial coefficients for each valid frame to a CSV file.
+5. Visualize and save plots of the sensor readings across the video frames.
+
+Key Features:
+-------------
+- Uses OpenCV for video handling, marker detection, and image processing.
+- Applies HSV masking and morphological operations to extract the spine region.
+- Fits a 5th-degree polynomial to the detected spine shape to quantify curvature.
+- Writes sensor distances and polynomial coefficients per frame to 'StoredData.csv'.
+- Generates and saves a summary plot of sensor readings over time.
+
+Inputs:
+-------
+- Video file path specified in `video_path`
+- ArUco markers of dictionary type DICT_4X4_100
+- Green or red color thresholds for spine segmentation
+
+Outputs:
+--------
+- 'StoredData.csv': contains frame number, sensor distances, and curve-fit coefficients
+- 'Figs/Sensors.png': sensor readings plotted over video frames
+- Visualized frames with annotated fiducials and spine curves (displayed in real-time)
+
+Notes:
+------
+- Frames with missing fiducials are skipped from analysis.
+- Frame-specific errors during curve fitting or marker detection are logged.
+"""
+
+
 import cv2
 import numpy as np
 import math

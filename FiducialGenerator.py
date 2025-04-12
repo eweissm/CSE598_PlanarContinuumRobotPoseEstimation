@@ -1,4 +1,7 @@
+"""
+Generates a list of fiducials for use on the planar robot
 
+"""
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt

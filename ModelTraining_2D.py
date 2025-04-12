@@ -1,3 +1,47 @@
+"""
+Author: Eric Weissman
+Date: 4/12
+
+Description:
+------------
+This script trains and evaluates a Deep Echo State Network (ESN) to predict the curvature of a 2D soft robotic spine
+from sensor measurements. The ground truth curvature is represented by polynomial coefficients extracted from video frames.
+
+The script performs the following steps:
+1. Loads preprocessed data containing sensor readings, actuator inputs, and corresponding polynomial coefficients.
+2. Prepares input features (sensor values) and output labels (polynomial coefficients).
+3. Splits the dataset into training and validation sets (90/10 split).
+4. Constructs and trains a Deep ESN using the ReservoirPy library.
+5. Evaluates the model's performance using mean squared error (MSE) on the validation set.
+6. Saves the trained model for future use.
+7. Plots example polynomial curves comparing predicted and true curvature profiles.
+
+Key Features:
+-------------
+- Uses `ReservoirPy` for creating and training the Echo State Network.
+- Employs Ridge regression as a readout layer to map reservoir states to target outputs.
+- Produces an IEEE-style plot of predicted vs. true curvature using polynomial curves.
+
+Inputs:
+-------
+- CSV file `ExtractedData/ExtractedData_SmoothSine.csv` containing:
+    - Columns 2–7: Sensor readings
+    - Columns 8–13: Polynomial coefficients (ground truth)
+    - Columns 14–15: Actuator inputs (not used in this script version)
+
+Outputs:
+--------
+- Trained ESN model saved to `TrainedModels/trained_esn_model.pkl`
+- Visualization of a predicted vs. true spine curvature saved as `Figs/fig6.png`
+- Printed validation Mean Squared Error (MSE)
+
+Notes:
+------
+- Only the sensor values are used as input features (actuator data excluded in this version).
+- One curve is visualized for comparison, but `NumGraphs` can be adjusted.
+- The script applies IEEE-compliant matplotlib formatting for publication-ready figures.
+"""
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -16,7 +60,11 @@ coefficients = data.iloc[:, 7:13].values  # Columns 8-13
 actuator_inputs = data.iloc[:, 13:15].values  # Columns 14-15
 
 # Concatenate sensor data and actuator inputs as input features
-X = np.hstack((sensor_data, actuator_inputs))
+# X = np.hstack((sensor_data, actuator_inputs))
+# y = coefficients  # Ground truth coefficients
+
+# Concatenate Only sensor data as input features
+X = sensor_data
 y = coefficients  # Ground truth coefficients
 
 # Split dataset into training (90%) and validation (10%)
