@@ -1,14 +1,19 @@
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from reservoirpy.nodes import Reservoir, Ridge
 import joblib
+from scipy.interpolate import splprep, splev
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D  # Needed for 3D plotting
 
 # Constants
 NUM_CENTERS = 3
 NUM_MARKERS = 3
 POLY_DEGREE = 2
 N_RESERVOIR = 200
+NUM_TRIALS = 10  # Number of times to train and average
 MODEL_PATH = "../TrainedModels/trained_esn_model_3d.pkl"
 CSV_PATH = "../ExtractedData/ManualManipulation_3D_edited.csv"  # Replace with actual file path
 
@@ -17,60 +22,6 @@ CENTER_X_COLUMNS = [6, 22, 38, 9, 12, 15, 28, 25, 31, 47, 44, 41]  # X column of
 MARKER_NAMES = [f"Center{i}" for i in range(NUM_CENTERS)] + \
                [f"M{i}_{j}" for i in range(NUM_CENTERS) for j in range(NUM_MARKERS)]
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # Needed for 3D plotting
-
-def plot_polynomial_fit_vs_prediction(y_val, y_pred, marker_dict, X_val, X_raw, frame_index=None):
-    """
-    Visualize a 3D polynomial ground truth vs prediction for one frame.
-    """
-    # Pick a frame (random if not provided)
-    if frame_index is None:
-        frame_index = np.random.randint(len(y_val))
-
-    # Extract the coefficients for the frame
-    gt_coeffs = y_val[frame_index]
-    pred_coeffs = y_pred[frame_index]
-
-    # Extract original center points
-    valid_frame_indices = np.where(np.all(~np.isnan(X_raw), axis=1))[0]
-    original_frame_index = valid_frame_indices[frame_index]
-    center_points = np.array([marker_dict[f"Center{i}"][original_frame_index] for i in range(3)])
-
-    # Time vector (same used in polyfit)
-    t = np.linspace(0, 2, 100)
-
-    # Evaluate the polynomials
-    def eval_poly(coeffs, t):
-        x = np.polyval(coeffs[0:3], t)
-        y = np.polyval(coeffs[3:6], t)
-        z = np.polyval(coeffs[6:9], t)
-        return x, y, z
-
-    gt_x, gt_y, gt_z = eval_poly(gt_coeffs, t)
-    pred_x, pred_y, pred_z = eval_poly(pred_coeffs, t)
-
-    # Plot
-    fig = plt.figure(figsize=(10, 7))
-    ax = fig.add_subplot(111, projection='3d')
-
-    # Center points
-    ax.scatter(center_points[:, 0], center_points[:, 1], center_points[:, 2],
-               color='black', label='Center Points', s=50)
-
-    # Ground truth polynomial fit
-    ax.plot(gt_x, gt_y, gt_z, label='Ground Truth Fit', linewidth=2)
-
-    # Predicted polynomial fit
-    ax.plot(pred_x, pred_y, pred_z, '--', label='Predicted Fit', linewidth=2)
-
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-    ax.set_title(f"3D Polynomial Fit vs Prediction (Frame {original_frame_index})")
-    ax.legend()
-    plt.tight_layout()
-    plt.show()
 
 def plot_scatter_fit_vs_prediction(y_val, y_pred, frame_index=None):
     """
@@ -80,17 +31,31 @@ def plot_scatter_fit_vs_prediction(y_val, y_pred, frame_index=None):
     if frame_index is None:
         frame_index = np.random.randint(len(y_val))
 
-    # Extract original center points
-    center_points = np.array(y_val[frame_index,:])
+    center_points=np.array([y_val[frame_index,i*3:i*3+3] for i in range(3)])
+    Prediction = np.array([y_pred[frame_index, i * 3:i * 3 + 3] for i in range(3)])
 
     # Plot
     fig = plt.figure(figsize=(10, 7))
     ax = fig.add_subplot(111, projection='3d')
 
     # Center points
-    ax.plot(y_val[frame_index,[0,3,6]],y_val[frame_index,[1,4,7]],y_val[frame_index,[2,5,8]], color='black', label='Center Points')
+    ax.scatter(center_points[:, 0], center_points[:, 1], center_points[:, 2], color='black', label='Center Points', s=50)
+    ax.scatter(Prediction[:, 0], Prediction[:, 1], Prediction[:, 2], color='red', label='Prediction', s=50)
+    # Fit B-spline through center points
+    try:
+        tck, _ = splprep(center_points.T, s=0,k=2)
+        spline = splev(np.linspace(0, 1, 100), tck)
+        ax.plot(spline[0], spline[1], spline[2], color='green', linestyle='--', label='Ground Truth', linewidth=2)
 
-    ax.plot(y_pred[frame_index,[0,3,6]],y_pred[frame_index,[1,4,7]],y_pred[frame_index,[2,5,8]], color='red', label='Prediction')
+        tck, _ = splprep(Prediction.T, s=0, k=2)
+        spline = splev(np.linspace(0, 1, 100), tck)
+        ax.plot(spline[0], spline[1], spline[2], color='green', linestyle='--', label='Prediction', linewidth=2)
+    except Exception as e:
+        print("Spline fitting failed:", e)
+        spline = ([], [], [])
+
+
+
 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
@@ -118,7 +83,6 @@ def load_marker_data(file_path, marker_names, column_indices):
     }
     return marker_dict, data
 
-
 def compute_distances(marker_dict, marker1, marker2):
     """
     Computes Euclidean distances between corresponding points of two markers.
@@ -126,7 +90,6 @@ def compute_distances(marker_dict, marker1, marker2):
     coords1 = marker_dict[marker1]
     coords2 = marker_dict[marker2]
     return np.linalg.norm(coords1 - coords2, axis=1)
-
 
 def compute_sensor_values(marker_dict, num_centers, num_markers):
     """
@@ -140,7 +103,6 @@ def compute_sensor_values(marker_dict, num_centers, num_markers):
             marker2 = f"M{i+1}_{j}"
             sensor_values[:, idx] = compute_distances(marker_dict, marker1, marker2)
     return sensor_values
-
 
 def fit_3d_polynomial_centers(marker_dict, degree=2):
     """
@@ -161,45 +123,62 @@ def fit_3d_polynomial_centers(marker_dict, degree=2):
 
     return coeffs
 
-
-def train_esn(X_train, y_train, n_reservoir=200, ridge_alpha=1e-5):
-    """
-    Trains an Echo State Network with Ridge readout.
-    """
-    reservoir = Reservoir(n_reservoir, name="reservoir")
+def train_esn(X_train, y_train, n_reservoir=200, ridge_alpha=1e-5, seed=None):
+    reservoir = Reservoir(n_reservoir, seed=seed, name="reservoir")
     readout = Ridge(ridge=ridge_alpha, name="readout")
     model = reservoir >> readout
     model.fit(X_train, y_train)
     return model
 
+def run_trial(seed=42, plot_one=False):
+    marker_dict, _ = load_marker_data(CSV_PATH, MARKER_NAMES, CENTER_X_COLUMNS)
 
-def main():
-    # Load data
-    marker_dict, data = load_marker_data(CSV_PATH, MARKER_NAMES, CENTER_X_COLUMNS)
-
-    # Prepare features and targets
     X_raw = compute_sensor_values(marker_dict, NUM_CENTERS, NUM_MARKERS)
-    # y_raw = fit_3d_polynomial_centers(marker_dict, degree=POLY_DEGREE)
-    y_raw= np.hstack([marker_dict["Center0"], marker_dict["Center1"], marker_dict["Center2"]] )
-
-    # Remove frames where either X or y has NaNs
+    y_raw = np.hstack([marker_dict["Center0"], marker_dict["Center1"], marker_dict["Center2"]])
     X, y = remove_nan_frames_from_features_and_targets(X_raw, y_raw)
 
-    # Split data
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.1, random_state=42)
+    X_scaler = StandardScaler()
+    y_scaler = StandardScaler()
+    X = X_scaler.fit_transform(X)
+    y = y_scaler.fit_transform(y)
 
-    # Train model
-    model = train_esn(X_train, y_train, n_reservoir=N_RESERVOIR)
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.1, random_state=seed)
 
-    # Validate model
+    model = train_esn(X_train, y_train, n_reservoir=N_RESERVOIR, seed=seed)
     y_pred = model.run(X_val)
-    mse = np.mean((y_pred - y_val) ** 2)
-    print(f"Validation MSE: {mse:.6f}")
 
-    # Save model
-    joblib.dump(model, MODEL_PATH)
-    print(f"Model saved to {MODEL_PATH}")
-    plot_scatter_fit_vs_prediction(y_val, y_pred)
+    # Inverse scaling for evaluation
+    y_val_orig = y_scaler.inverse_transform(y_val)
+    y_pred_orig = y_scaler.inverse_transform(y_pred)
+    mse = np.mean((y_pred_orig - y_val_orig) ** 2)
+
+    if plot_one:
+        plot_scatter_fit_vs_prediction(y_val_orig, y_pred_orig)
+
+    return mse
+
+def main():
+    mse_list = []
+    for i in range(NUM_TRIALS):
+        seed = 42 + i
+        mse = run_trial(seed=seed, plot_one=(i == 0))  # Plot only the first run
+        print(f"[Trial {i + 1}] MSE: {mse:.6f}")
+        mse_list.append(mse)
+
+    mse_mean = np.mean(mse_list)
+    mse_std = np.std(mse_list)
+    print(f"\nAverage MSE over {NUM_TRIALS} trials: {mse_mean:.6f} ± {mse_std:.6f}")
+
+    # Optionally save the final model
+    final_model = train_esn(*train_test_split(*remove_nan_frames_from_features_and_targets(
+        compute_sensor_values(*load_marker_data(CSV_PATH, MARKER_NAMES, CENTER_X_COLUMNS)),
+        np.hstack(
+            [load_marker_data(CSV_PATH, MARKER_NAMES, CENTER_X_COLUMNS)[0][f"Center{i}"] for i in range(NUM_CENTERS)])
+    ), test_size=0.1, random_state=0), seed=0)
+
+    joblib.dump(final_model, MODEL_PATH)
+    print(f"Final model saved to {MODEL_PATH}")
+
 
 if __name__ == "__main__":
     main()
