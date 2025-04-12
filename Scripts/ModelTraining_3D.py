@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from reservoirpy.nodes import Reservoir, Ridge
+from reservoirpy.nodes import Reservoir, Ridge, Input, Concat
 import joblib
 from scipy.interpolate import splprep, splev
 import matplotlib.pyplot as plt
@@ -12,7 +12,8 @@ from mpl_toolkits.mplot3d import Axes3D  # Needed for 3D plotting
 NUM_CENTERS = 3
 NUM_MARKERS = 3
 POLY_DEGREE = 2
-N_RESERVOIR = 200
+N_RESERVOIR = 2000
+RIDGE_ALPHA = 1e-7
 NUM_TRIALS = 10  # Number of times to train and average
 MODEL_PATH = "../TrainedModels/trained_esn_model_3d.pkl"
 CSV_PATH = "../ExtractedData/ManualManipulation_3D_edited.csv"  # Replace with actual file path
@@ -102,6 +103,7 @@ def compute_sensor_values(marker_dict, num_centers, num_markers):
             marker1 = f"M{i}_{j}"
             marker2 = f"M{i+1}_{j}"
             sensor_values[:, idx] = compute_distances(marker_dict, marker1, marker2)
+
     return sensor_values
 
 def fit_3d_polynomial_centers(marker_dict, degree=2):
@@ -123,10 +125,17 @@ def fit_3d_polynomial_centers(marker_dict, degree=2):
 
     return coeffs
 
-def train_esn(X_train, y_train, n_reservoir=200, ridge_alpha=1e-5, seed=None):
-    reservoir = Reservoir(n_reservoir, seed=seed, name=f"reservoir_{seed}")
-    readout = Ridge(ridge=ridge_alpha, name=f"readout_{seed}")
-    model = reservoir >> readout
+def train_esn(X_train, y_train, n_reservoir, ridge_alpha, seed=None):
+    reservoir1 = Reservoir(n_reservoir, seed=seed, name=f"reservoir1_{seed}",lr=0.8, sr=.2)
+    reservoir2 = Reservoir(n_reservoir, seed=seed, name=f"reservoir2_{seed}", lr=0.8, sr=.2)
+
+    readout1 = Ridge(ridge=ridge_alpha, name=f"readout1_{seed}")
+
+    # model = reservoir1 >> readout
+    concatenate1 = Concat()
+
+    model =[ Input(),  Input() >> reservoir1] >> concatenate1 >> reservoir2>> readout1
+
     model.fit(X_train, y_train)
     return model
 
@@ -145,7 +154,7 @@ def run_trial(seed=42, plot_one=False):
 
     X_train, X_val, y_train, y_val = train_test_split(X_scaled, y_scaled, test_size=0.1, random_state=seed)
 
-    model = train_esn(X_train, y_train, n_reservoir=N_RESERVOIR, seed=seed)
+    model = train_esn(X_train, y_train, n_reservoir=N_RESERVOIR,ridge_alpha =RIDGE_ALPHA, seed=seed)
     y_pred_scaled = model.run(X_val)
 
     # Inverse transform for evaluation
