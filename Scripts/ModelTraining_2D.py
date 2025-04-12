@@ -51,7 +51,7 @@ import matplotlib.pyplot as plt
 import scienceplots
 
 # Load dataset
-file_path = "ExtractedData/ExtractedData_SmoothSine.csv"  # Replace with actual file path
+file_path = "../ExtractedData/ExtractedData_SmoothSine.csv"  # Replace with actual file path
 data = pd.read_csv(file_path)
 
 # Extract features and labels
@@ -91,7 +91,7 @@ print(f"Validation MSE: {mse:.6f}")
 
 # Save the trained model
 import joblib
-joblib.dump(model, "TrainedModels/trained_esn_model.pkl")
+joblib.dump(model, "../TrainedModels/trained_esn_model.pkl")
 
 
 

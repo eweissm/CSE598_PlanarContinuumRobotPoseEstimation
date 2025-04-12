@@ -45,7 +45,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import splprep, splev
 import csv
 
-video_path = 'Videos/MVI_0767.MOV'  # Replace with the actual path to your video file
+video_path = '../Videos/MVI_0767.MOV'  # Replace with the actual path to your video file
 cap = cv2.VideoCapture(video_path)
 
 scale_x = .8  # Reduce width to 50%
