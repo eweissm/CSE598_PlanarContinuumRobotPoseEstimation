@@ -124,8 +124,8 @@ def fit_3d_polynomial_centers(marker_dict, degree=2):
     return coeffs
 
 def train_esn(X_train, y_train, n_reservoir=200, ridge_alpha=1e-5, seed=None):
-    reservoir = Reservoir(n_reservoir, seed=seed, name="reservoir")
-    readout = Ridge(ridge=ridge_alpha, name="readout")
+    reservoir = Reservoir(n_reservoir, seed=seed, name=f"reservoir_{seed}")
+    readout = Ridge(ridge=ridge_alpha, name=f"readout_{seed}")
     model = reservoir >> readout
     model.fit(X_train, y_train)
     return model
@@ -134,26 +134,28 @@ def run_trial(seed=42, plot_one=False):
     marker_dict, _ = load_marker_data(CSV_PATH, MARKER_NAMES, CENTER_X_COLUMNS)
 
     X_raw = compute_sensor_values(marker_dict, NUM_CENTERS, NUM_MARKERS)
-    y_raw = np.hstack([marker_dict["Center0"], marker_dict["Center1"], marker_dict["Center2"]])
+    y_raw = np.hstack([marker_dict[f"Center{i}"] for i in range(NUM_CENTERS)])
     X, y = remove_nan_frames_from_features_and_targets(X_raw, y_raw)
 
+    # Normalize data
     X_scaler = StandardScaler()
     y_scaler = StandardScaler()
-    X = X_scaler.fit_transform(X)
-    y = y_scaler.fit_transform(y)
+    X_scaled = X_scaler.fit_transform(X)
+    y_scaled = y_scaler.fit_transform(y)
 
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.1, random_state=seed)
+    X_train, X_val, y_train, y_val = train_test_split(X_scaled, y_scaled, test_size=0.1, random_state=seed)
 
     model = train_esn(X_train, y_train, n_reservoir=N_RESERVOIR, seed=seed)
-    y_pred = model.run(X_val)
+    y_pred_scaled = model.run(X_val)
 
-    # Inverse scaling for evaluation
+    # Inverse transform for evaluation
+    y_pred = y_scaler.inverse_transform(y_pred_scaled)
     y_val_orig = y_scaler.inverse_transform(y_val)
-    y_pred_orig = y_scaler.inverse_transform(y_pred)
-    mse = np.mean((y_pred_orig - y_val_orig) ** 2)
+
+    mse = np.mean((y_pred - y_val_orig) ** 2)
 
     if plot_one:
-        plot_scatter_fit_vs_prediction(y_val_orig, y_pred_orig)
+        plot_scatter_fit_vs_prediction(y_val_orig, y_pred)
 
     return mse
 
@@ -168,17 +170,6 @@ def main():
     mse_mean = np.mean(mse_list)
     mse_std = np.std(mse_list)
     print(f"\nAverage MSE over {NUM_TRIALS} trials: {mse_mean:.6f} ± {mse_std:.6f}")
-
-    # Optionally save the final model
-    final_model = train_esn(*train_test_split(*remove_nan_frames_from_features_and_targets(
-        compute_sensor_values(*load_marker_data(CSV_PATH, MARKER_NAMES, CENTER_X_COLUMNS)),
-        np.hstack(
-            [load_marker_data(CSV_PATH, MARKER_NAMES, CENTER_X_COLUMNS)[0][f"Center{i}"] for i in range(NUM_CENTERS)])
-    ), test_size=0.1, random_state=0), seed=0)
-
-    joblib.dump(final_model, MODEL_PATH)
-    print(f"Final model saved to {MODEL_PATH}")
-
 
 if __name__ == "__main__":
     main()
