@@ -16,11 +16,11 @@ import time
 # Constants
 NUM_CENTERS = 3
 NUM_MARKERS = 3
-POLY_DEGREE = 2
-N_RESERVOIR = 2000
-RIDGE_ALPHA = 1e-7
-NUM_TRIALS = 10  # Number of times to train and average
-MODEL_PATH = "../TrainedModels/trained_esn_model_3d.pkl"
+# POLY_DEGREE = 2
+# N_RESERVOIR = 2000
+# RIDGE_ALPHA = 1e-7
+NUM_TRIALS = 5  # Number of times to train and average
+MODEL_PATH = "../TrainedModels/trained_Transformer_model_3d.pkl"
 CSV_PATH = "../ExtractedData/ManualManipulation_3D_edited.csv"  # Replace with actual file path
 
 # Define marker names and column indices
@@ -30,7 +30,7 @@ MARKER_NAMES = [f"Center{i}" for i in range(NUM_CENTERS)] + \
 
 
 class TransformerRegressionModel(nn.Module):
-    def __init__(self, input_dim, output_dim, d_model=128, nhead=8, num_layers=4, dim_feedforward=512, dropout=0.1):
+    def __init__(self, input_dim, output_dim, d_model=128, nhead=4, num_layers=4, dim_feedforward=512, dropout=0.1):
         super().__init__()
         self.input_projection = nn.Linear(input_dim, d_model)
 
@@ -261,7 +261,7 @@ def main():
         seed = 42 + i
         mse = run_trial(seed=seed, plot_one=(1))  # Plot only the first run
         toc = time.time()
-        print(f"[Trial {i + 1}] MSE: {mse:.6f}")
+        print(f"[Trial {i + 1}] MSE: {mse:.6f}, Time: {toc - tic:.6f}")
         mse_list.append(mse)
         time_list.append(toc-tic)
 
