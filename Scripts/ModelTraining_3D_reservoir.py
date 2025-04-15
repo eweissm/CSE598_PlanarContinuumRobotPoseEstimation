@@ -89,6 +89,7 @@ def plot_scatter_fit_vs_prediction(y_val, y_pred, frame_index=None):
     ax.set_zlabel('Z')
     ax.legend()
     plt.tight_layout()
+    ax.set_aspect('equal', adjustable='box')
     plt.show()
 
 
