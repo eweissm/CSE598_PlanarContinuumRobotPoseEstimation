@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
+import time
 
 # Constants
 NUM_CENTERS = 3
@@ -32,16 +33,38 @@ class TransformerRegressionModel(nn.Module):
     def __init__(self, input_dim, output_dim, d_model=128, nhead=8, num_layers=4, dim_feedforward=512, dropout=0.1):
         super().__init__()
         self.input_projection = nn.Linear(input_dim, d_model)
-        encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead,
-                                                   dim_feedforward=dim_feedforward, dropout=dropout, batch_first=True)
+
+        # Learnable positional embedding (sequence length is 1, but we simulate a sequence)
+        self.pos_embedding = nn.Parameter(torch.randn(1, 1, d_model))
+
+        # Transformer encoder
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=d_model, nhead=nhead,
+            dim_feedforward=dim_feedforward, dropout=dropout,
+            batch_first=True
+        )
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
-        self.output_layer = nn.Linear(d_model, output_dim)
+
+        # Deeper regression head with residual connection
+        self.output_head = nn.Sequential(
+            nn.Linear(d_model, 128),
+            nn.ReLU(),
+            nn.Linear(128, output_dim)
+        )
+
+        # Optional projection if dimensions don't match
+        self.residual_proj = nn.Linear(d_model, output_dim) if d_model != output_dim else nn.Identity()
 
     def forward(self, x):
-        # x: (batch_size, sequence_len=1, input_dim)
-        x_proj = self.input_projection(x)
-        x_encoded = self.transformer_encoder(x_proj)
-        output = self.output_layer(x_encoded[:, 0, :])  # Use the first token (or all if wanted)
+        # x shape: (batch_size, 1, input_dim)
+        x_proj = self.input_projection(x)  # -> (batch_size, 1, d_model)
+        x_proj += self.pos_embedding  # Add positional embedding
+
+        encoded = self.transformer_encoder(x_proj)  # -> (batch_size, 1, d_model)
+        encoded = encoded[:, 0, :]  # Use the first (and only) token
+
+        # Residual connection: output = head(encoded) + projection(encoded)
+        output = self.output_head(encoded) + self.residual_proj(encoded)
         return output
 
 def plot_scatter_fit_vs_prediction(y_val, y_pred, frame_index=None):
@@ -111,7 +134,6 @@ def plot_scatter_fit_vs_prediction(y_val, y_pred, frame_index=None):
     plt.tight_layout()
     ax.set_aspect('equal', adjustable='box')
     plt.show()
-
 
 def remove_nan_frames_from_features_and_targets(X, y):
     """
@@ -233,15 +255,23 @@ def run_trial(seed=42, plot_one=False):
 
 def main():
     mse_list = []
+    time_list =[]
     for i in range(NUM_TRIALS):
+        tic = time.time()
         seed = 42 + i
         mse = run_trial(seed=seed, plot_one=(1))  # Plot only the first run
+        toc = time.time()
         print(f"[Trial {i + 1}] MSE: {mse:.6f}")
         mse_list.append(mse)
+        time_list.append(toc-tic)
+
+    time_mean = np.mean(time_list)
+    time_std = np.std(time_list)
 
     mse_mean = np.mean(mse_list)
     mse_std = np.std(mse_list)
     print(f"\nAverage MSE over {NUM_TRIALS} trials: {mse_mean:.6f} ± {mse_std:.6f}")
+    print(f"\nAverage Time over {NUM_TRIALS} trials: {time_mean:.6f} ± {time_std:.6f}")
 
 if __name__ == "__main__":
     main()

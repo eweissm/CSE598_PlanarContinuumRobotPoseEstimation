@@ -7,6 +7,7 @@ import joblib
 from scipy.interpolate import splprep, splev
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # Needed for 3D plotting
+import time
 
 # Constants
 NUM_CENTERS = 3
@@ -196,17 +197,26 @@ def run_trial(seed=42, plot_one=False):
 
     return mse
 
+
 def main():
     mse_list = []
+    time_list = []
     for i in range(NUM_TRIALS):
+        tic = time.time()
         seed = 42 + i
         mse = run_trial(seed=seed, plot_one=(1))  # Plot only the first run
+        toc = time.time()
         print(f"[Trial {i + 1}] MSE: {mse:.6f}")
         mse_list.append(mse)
+        time_list.append(toc - tic)
+
+    time_mean = np.mean(time_list)
+    time_std = np.std(time_list)
 
     mse_mean = np.mean(mse_list)
     mse_std = np.std(mse_list)
     print(f"\nAverage MSE over {NUM_TRIALS} trials: {mse_mean:.6f} ± {mse_std:.6f}")
+    print(f"\nAverage Time over {NUM_TRIALS} trials: {time_mean:.6f} ± {time_std:.6f}")
 
 if __name__ == "__main__":
     main()
