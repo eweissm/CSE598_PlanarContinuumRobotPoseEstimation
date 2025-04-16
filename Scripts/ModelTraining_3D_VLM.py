@@ -30,7 +30,7 @@ MARKER_NAMES = [f"Center{i}" for i in range(NUM_CENTERS)] + \
 
 
 class TransformerRegressionModel(nn.Module):
-    def __init__(self, input_dim, output_dim, d_model=128, nhead=4, num_layers=4, dim_feedforward=512, dropout=0.1):
+    def __init__(self, input_dim, output_dim, d_model=128, nhead=8, num_layers=4, dim_feedforward=512, dropout=0.1):
         super().__init__()
         self.input_projection = nn.Linear(input_dim, d_model)
 
@@ -199,6 +199,7 @@ def train_transformer(X_train, y_train, input_dim, output_dim, seed=42, epochs=1
     torch.manual_seed(seed)
     model = TransformerRegressionModel(input_dim=input_dim, output_dim=output_dim)
     criterion = nn.MSELoss()
+    # criterion = nn.SmoothL1Loss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32).unsqueeze(1),
