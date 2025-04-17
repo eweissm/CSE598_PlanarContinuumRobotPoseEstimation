@@ -1,3 +1,25 @@
+"""
+Author: Eric Weissman
+Date: 2025-04-15
+
+Title: Transformer-Based Regression for 3D Center Trajectory Prediction in Continuum Spine Models
+
+Description:
+This script implements a regression pipeline using a Transformer-based neural network
+to predict 3D center trajectories of a continuum spine based on marker-derived sensor
+distances. The process includes data loading and cleaning, sensor value computation,
+polynomial ground truth generation, normalization, model training, and evaluation
+across multiple trials. Visualization functions are included to compare ground truth
+and predicted trajectories in 3D space with spline fits and projections.
+
+Key Features:
+- Transformer regression model with learnable positional encoding
+- Multi-trial training and evaluation with MSE reporting
+- Custom 3D visualization for prediction vs. ground truth
+- Data preprocessing including NaN filtering and standard scaling
+- Marker distance calculation as surrogate sensor input
+"""
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split

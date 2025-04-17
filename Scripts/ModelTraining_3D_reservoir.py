@@ -1,3 +1,28 @@
+"""
+Author: Eric Weissman
+Date: 2025-04-15
+
+Title: Echo State Network for 3D Center Trajectory Prediction in Continuum Spine Models
+
+Description:
+This script implements a regression pipeline using a reservoir computing architecture
+(Echo State Network) to predict the 3D centerline of a continuum spine based on
+distances between surface markers. The ESN consists of stacked reservoirs and
+a ridge regression readout. The workflow includes data loading, preprocessing,
+sensor value computation, polynomial fitting of the center trajectory, training
+and evaluation of the ESN model, and 3D visualization of predictions vs ground truth.
+
+Key Features:
+- Dual-reservoir ESN architecture with concatenation and ridge readout
+- Multi-trial training to report average and standard deviation of MSE
+- 3D scatter plot with spline interpolation and projection visualization
+- Handles missing data by removing NaN frames
+- Data normalization and inverse transformation for evaluation
+
+Dependencies:
+- ReservoirPy, NumPy, Pandas, Scikit-learn, Matplotlib, SciPy
+"""
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
